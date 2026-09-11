@@ -1,0 +1,250 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="东盟通检智防——面向东盟出入境人员的传染病风险智能筛查与分层预警平台演示">
+  <title>东盟通检智防｜可观测智能筛查演示</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div>
+        <div class="brand-title">东盟通检智防</div>
+        <div class="brand-subtitle">ASEAN SmartCheck &amp; RiskGuard</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="status-pill" id="systemStatus"><i></i>系统检测中</span>
+      <button class="ghost-button" id="refreshButton" type="button">刷新观测数据</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">可解释风险筛查 · 分层预警 · 人在回路</p>
+      <h1>把“是否风险高”变成一条<br><span>可追溯的辅助决策链</span></h1>
+      <p>融合旅行暴露、症状体征、检测结果和实验室指标，实时输出风险指数、可疑病原范围、感染阶段、严重程度和分级处置建议。系统不替代医生，只提供可解释、可复核、可拒答的智能辅助。</p>
+    </div>
+    <div class="hero-principles" aria-label="可信 AI 原则">
+      <div><strong>小模型</strong><span>核心判别</span></div>
+      <div><strong>知识库</strong><span>硬约束</span></div>
+      <div><strong>大模型</strong><span>只做解释</span></div>
+      <div><strong>专业人员</strong><span>最终决策</span></div>
+    </div>
+  </section>
+
+  <main class="page-shell">
+    <section class="metrics-strip" aria-label="系统可观测指标">
+      <article class="metric-card">
+        <span class="metric-label">系统状态</span>
+        <strong id="metricStatus">--</strong>
+        <small>模型与接口健康</small>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">平均响应</span>
+        <strong id="metricLatency">-- ms</strong>
+        <small>服务端评估耗时</small>
+      </article>
+      <article class="metric-card accent-orange">
+        <span class="metric-label">高风险告警</span>
+        <strong id="metricAlerts">0</strong>
+        <small>橙色与红色预警</small>
+      </article>
+      <article class="metric-card accent-blue">
+        <span class="metric-label">拒答 / 转人工</span>
+        <strong id="metricRejects">0</strong>
+        <small>低置信度安全机制</small>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel input-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">输入工作台</p>
+            <h2>出入境人员风险信息</h2>
+          </div>
+          <span class="model-chip" id="modelChip">规则模型 v0.1</span>
+        </div>
+
+        <div class="preset-block">
+          <span>一键演示案例</span>
+          <div class="preset-row">
+            <button class="preset-button active" data-preset="dengue" type="button">登革热关注</button>
+            <button class="preset-button" data-preset="flu" type="button">流感低风险</button>
+            <button class="preset-button" data-preset="nipah" type="button">尼帕紧急信号</button>
+            <button class="preset-button" data-preset="insufficient" type="button">信息不足拒答</button>
+          </div>
+        </div>
+
+        <form id="screeningForm">
+          <fieldset>
+            <legend><span>01</span>基础信息</legend>
+            <div class="field-grid two">
+              <label class="field"><span>年龄</span><input type="number" name="age" min="0" max="120" placeholder="例如 32"></label>
+              <label class="field"><span>性别（仅医学需要）</span>
+                <select name="sex"><option>未说明</option><option>男</option><option>女</option><option>其他</option></select>
+              </label>
+            </div>
+            <label class="field"><span>国籍 / 来源地</span><input type="text" name="nationality" placeholder="例如 中国"></label>
+            <div class="check-row">
+              <label class="switch"><input type="checkbox" name="chronic_disease"><span>基础疾病</span></label>
+              <label class="switch"><input type="checkbox" name="pregnancy"><span>妊娠状态</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span>02</span>旅行与暴露</legend>
+            <label class="field"><span>旅行国家 / 地区</span><input type="text" name="visited_countries" placeholder="例如 泰国、马来西亚"></label>
+            <div class="field-grid two">
+              <label class="field"><span>可能暴露后天数</span><input type="number" name="days_since_exposure" min="0" max="365" placeholder="例如 6"></label>
+              <label class="field"><span>症状开始后天数</span><input type="number" name="onset_days" min="0" max="365" placeholder="例如 2"></label>
+            </div>
+            <div class="chip-grid compact">
+              <label class="chip"><input type="checkbox" data-exposure="mosquito_exposure"><span>蚊虫叮咬</span></label>
+              <label class="chip"><input type="checkbox" data-exposure="animal_contact"><span>动物暴露</span></label>
+              <label class="chip"><input type="checkbox" data-exposure="crowded_setting"><span>人员密集</span></label>
+              <label class="chip"><input type="checkbox" data-exposure="sick_contact"><span>患者接触</span></label>
+              <label class="chip"><input type="checkbox" data-exposure="rural_or_farm"><span>乡村 / 农场</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span>03</span>症状与体征</legend>
+            <div class="chip-grid">
+              <label class="chip danger-chip"><input type="checkbox" data-symptom="fever"><span>发热</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="rash"><span>皮疹</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="joint_pain"><span>关节痛</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="headache"><span>头痛</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="retroorbital_pain"><span>眼后痛</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="myalgia"><span>肌肉酸痛</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="vomiting"><span>呕吐</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="diarrhea"><span>腹泻</span></label>
+              <label class="chip danger-chip"><input type="checkbox" data-symptom="bleeding"><span>出血</span></label>
+              <label class="chip danger-chip"><input type="checkbox" data-symptom="confusion"><span>意识改变</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="cough"><span>咳嗽</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="sore_throat"><span>咽痛</span></label>
+              <label class="chip danger-chip"><input type="checkbox" data-symptom="breathing_difficulty"><span>呼吸困难</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="conjunctivitis"><span>结膜充血</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="lymphadenopathy"><span>淋巴结肿大</span></label>
+              <label class="chip"><input type="checkbox" data-symptom="hand_foot_mouth"><span>手足口表现</span></label>
+            </div>
+            <div class="field-grid three">
+              <label class="field"><span>体温 ℃</span><input type="number" step="0.1" name="temperature" placeholder="39.1"></label>
+              <label class="field"><span>心率 次/分</span><input type="number" name="heart_rate" placeholder="104"></label>
+              <label class="field"><span>呼吸频率 次/分</span><input type="number" name="respiratory_rate" placeholder="20"></label>
+              <label class="field"><span>收缩压 mmHg</span><input type="number" name="systolic_bp" placeholder="112"></label>
+              <label class="field"><span>舒张压 mmHg</span><input type="number" name="diastolic_bp" placeholder="70"></label>
+              <label class="field"><span>血氧 %</span><input type="number" name="spo2" min="0" max="100" placeholder="97"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span>04</span>实验室与快检</legend>
+            <div class="field-grid three">
+              <label class="field"><span>WBC ×10⁹/L</span><input type="number" step="0.1" name="wbc" placeholder="3.1"></label>
+              <label class="field"><span>血小板 ×10⁹/L</span><input type="number" step="1" name="platelets" placeholder="92"></label>
+              <label class="field"><span>CRP mg/L</span><input type="number" step="0.1" name="crp" placeholder="18"></label>
+              <label class="field"><span>ALT U/L</span><input type="number" step="0.1" name="alt" placeholder="55"></label>
+              <label class="field"><span>AST U/L</span><input type="number" step="0.1" name="ast" placeholder="62"></label>
+            </div>
+            <details class="test-details">
+              <summary>展开现场快速检测结果</summary>
+              <div class="field-grid two test-grid">
+                <label class="field"><span>登革 NS1 抗原</span><select data-test="dengue_ns1"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>登革 IgM</span><select data-test="dengue_igm"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>基孔肯雅 RT-PCR</span><select data-test="chikungunya_pcr"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>寨卡 RT-PCR</span><select data-test="zika_pcr"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>乙脑 IgM</span><select data-test="je_igm"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>甲型流感抗原</span><select data-test="influenza_a"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>乙型流感抗原</span><select data-test="influenza_b"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>新冠抗原</span><select data-test="covid_antigen"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>麻疹 IgM</span><select data-test="measles_igm"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+                <label class="field"><span>猴痘 PCR</span><select data-test="mpox_pcr"><option value="unknown">未检测</option><option value="negative">阴性</option><option value="positive">阳性</option></select></label>
+              </div>
+            </details>
+          </fieldset>
+
+          <div class="form-actions">
+            <button class="primary-button" type="submit"><span class="button-pulse"></span>开始智能风险筛查</button>
+            <button class="secondary-button" id="clearButton" type="button">清空</button>
+          </div>
+          <p class="privacy-note">演示系统仅在内存中处理本次请求，日志不记录姓名和原始输入，不向外部服务传输数据。</p>
+        </form>
+      </aside>
+
+      <section class="panel result-panel" id="resultPanel">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-radar"><span></span></div>
+          <h2>等待风险评估</h2>
+          <p>输入信息后，系统将展示风险指数、可疑病原范围、感染阶段、严重程度与证据链。</p>
+        </div>
+        <div id="resultContent" hidden></div>
+      </section>
+    </section>
+
+    <section class="panel observability-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">系统观测台</p>
+          <h2>运行指标与请求日志</h2>
+        </div>
+        <span class="live-indicator"><i></i>实时刷新</span>
+      </div>
+      <div class="observability-grid">
+        <article class="observability-card">
+          <span>累计评估</span>
+          <strong id="metricTotal">0</strong>
+          <small>无原始输入入库</small>
+        </article>
+        <article class="observability-card">
+          <span>P95 延迟</span>
+          <strong id="metricP95">0 ms</strong>
+          <small>近 1000 次内存统计</small>
+        </article>
+        <article class="observability-card">
+          <span>模型版本</span>
+          <strong id="metricModel">--</strong>
+          <small>可追溯到具体规则版本</small>
+        </article>
+        <article class="observability-card">
+          <span>错误计数</span>
+          <strong id="metricErrors">0</strong>
+          <small>接口异常观测</small>
+        </article>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>请求编号</th>
+              <th>预警</th>
+              <th>风险/置信度</th>
+              <th>数据质量</th>
+              <th>耗时</th>
+              <th>人工复核</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="7" class="table-empty">暂无请求日志</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>安全边界：</strong>本演示用于项目展示、教学与算法验证，不构成医学诊断。高风险结果必须由具备资质的专业人员复核，任何隔离、转运和报告决定均不得由系统自动作出。
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./engine.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

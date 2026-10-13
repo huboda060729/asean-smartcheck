@@ -368,6 +368,9 @@ h1, h2, h3, p { margin-top: 0; }
   padding: 30px 0 44px;
 }
 
+/* 屏幕隐藏，仅在打印/导出报告顶部出现（任务A：打印免责声明） */
+.print-disclaimer { display: none; }
+
 .metrics-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
 
 .metric-card {
@@ -726,6 +729,14 @@ legend span {
 
 .result-banner .ghost-button:hover { background: rgba(255, 255, 255, 0.4); border-color: rgba(8, 21, 27, 0.4); }
 
+/* 任务B：低置信度/安全拒答时，主状态用中性色呈现，避免被读成"低风险可放行" */
+.result-banner.is-reject { background: linear-gradient(120deg, #3d4c55, #22303a); color: #eaf3f6; }
+.result-banner.is-reject h2 { color: #f2fafc; }
+.result-banner.is-reject p { color: rgba(234, 243, 246, 0.82); }
+.result-banner.is-reject .level-badge { color: #f2fafc; background: rgba(255, 255, 255, 0.16); }
+.result-banner.is-reject .ghost-button { color: #f2fafc; border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.12); }
+.result-banner.is-reject .ghost-button:hover { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.45); }
+
 .result-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
 
 .result-meta div {
@@ -837,6 +848,18 @@ legend span {
 .confidence-track { flex: 1; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .confidence-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--aqua), var(--cyan)); }
 
+/* 拒答状态下的说明性提示（仅 low_confidence 时由 JS 取消 hidden） */
+.metric-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--lvl-yellow);
+  border-radius: 4px;
+  color: #ffe1a3;
+  background: rgba(247, 205, 79, 0.08);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .guardrail-list { display: grid; gap: 7px; }
 
 .guardrail-item {
@@ -924,6 +947,8 @@ tr:last-child td { border-bottom: 0; }
 .mini-red { color: #2b0409; background: var(--lvl-red); }
 .mini-safe { color: #04241d; background: var(--aqua); }
 .mini-review { color: #2a1c00; background: var(--amber); }
+.mini-reject { color: #f2fafc; background: #3d4c55; }
+.mini-neutral { color: #cfd8dc; background: rgba(255, 255, 255, 0.12); }
 
 /* ---------- footer & toast ---------- */
 
@@ -1009,6 +1034,20 @@ body.reveal-ready [data-reveal].is-visible { opacity: 1; transform: none; }
   #bgCanvas, .aurora, .cursor-glow, .topbar, .hero, .input-panel, .observability-panel, footer, .toast, .result-banner-actions { display: none !important; }
   body { background: #fff; color: #111; }
   .page-shell { width: 100%; margin: 0; padding: 0; }
+  /* 任务A：打印/导出报告顶部必须显示非诊断免责声明 */
+  .print-disclaimer {
+    display: block !important;
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px solid #9aa3a8;
+    border-left: 4px solid #b91c1c;
+    border-radius: 4px;
+    color: #111;
+    background: #fff;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .print-disclaimer strong { color: #b91c1c; }
   .workspace { display: block; }
   .result-panel { position: static; max-height: none; border: 0; box-shadow: none; background: #fff; }
   .panel, .result-card, .result-meta div, .info-block, .guardrail-item, .pathogen-row { background: #fff !important; border-color: #ccc !important; color: #111 !important; }

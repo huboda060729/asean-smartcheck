@@ -224,13 +224,14 @@ function renderResult(result) {
   currentResult = result;
   const level = safeLevel(result.risk.warning_level);
   const confidencePercent = Math.round((result.trust.confidence || 0) * 100);
+  const lowConfidence = Boolean(result.trust.low_confidence);
 
   emptyState.hidden = true;
   resultContent.hidden = false;
   resultContent.innerHTML = `
-    <div class="result-banner level-${level}">
+    <div class="result-banner level-${level}${lowConfidence ? ' is-reject' : ''}">
       <div>
-        <span class="level-badge">${result.risk.warning_label}</span>
+        <span class="level-badge">${lowConfidence ? '证据不足 · 已拒答' : result.risk.warning_label}</span>
         <h2 id="resultTitle"></h2>
         <p id="resultSummary"></p>
       </div>
@@ -241,7 +242,7 @@ function renderResult(result) {
     </div>
     <div id="rejectBanner"></div>
     <div class="result-meta">
-      <div><span>风险指数</span><strong id="metaRisk"></strong></div>
+      <div><span id="metaRiskLabel">风险指数</span><strong id="metaRisk"></strong></div>
       <div><span>数据质量</span><strong id="metaQuality"></strong></div>
       <div><span>AI 置信度</span><strong id="metaConfidence"></strong></div>
       <div><span>评估耗时</span><strong id="metaLatency"></strong></div>
@@ -249,9 +250,9 @@ function renderResult(result) {
     <div class="result-grid">
       <div class="stack">
         <article class="result-card gauge-card level-${level}">
-          <h3>综合风险指数</h3>
+          <h3 id="gaugeTitle">综合风险指数</h3>
           <div class="risk-gauge" id="riskGauge"><div><strong id="riskScore"></strong><span>满分 99</span></div></div>
-          <p class="muted">该指数用于演示分层逻辑，并非校准后的临床概率。</p>
+          <p class="muted" id="gaugeNote">该指数用于演示分层逻辑，并非校准后的临床概率。</p>
         </article>
         <article class="result-card">
           <h3>感染阶段 / 时间窗</h3>
@@ -267,7 +268,7 @@ function renderResult(result) {
           <h3>可疑病原范围</h3>
           <p class="muted">按输入证据的规则评分排序，仅用于提示检测方向。</p>
           <div class="pathogen-list" id="pathogenList"></div>
-          <p class="relative-note">“相对占比”仅表示候选之间的相对排序，不代表真实感染概率。</p>
+          <p class="relative-note" id="relativeNote">“相对占比”仅表示候选之间的相对排序，不代表真实感染概率。</p>
         </article>
         <article class="result-card">
           <h3>风险证据链</h3>
@@ -283,6 +284,7 @@ function renderResult(result) {
         <article class="result-card">
           <h3>可信 AI 控制面板</h3>
           <div class="confidence-row"><span>置信度</span><div class="confidence-track"><div class="confidence-fill" id="confidenceFill"></div></div><strong id="confidenceText"></strong></div>
+          <p class="metric-note" id="confidenceNote" hidden></p>
           <div class="guardrail-list detail-card" id="guardrailList"></div>
         </article>
         <article class="result-card">
@@ -294,26 +296,51 @@ function renderResult(result) {
     </div>
   `;
 
-  setText('resultTitle', `${result.risk.label} · ${result.risk.warning_label}`);
-  setText('resultSummary', result.risk.summary);
+  setText('resultTitle', lowConfidence
+    ? '暂无法判断 · 转人工复核'
+    : `${result.risk.label} · ${result.risk.warning_label}`);
+  // 拒答时不呈现结论性摘要，避免被误读为"已完成评估"
+  setText('resultSummary', lowConfidence
+    ? '信息不足或候选证据差异不明显，系统不输出确定性结论，已转人工复核。'
+    : result.risk.summary);
+  setText('metaRiskLabel', lowConfidence ? '风险指数（规则原始输出）' : '风险指数');
   setText('metaRisk', `${result.risk.score} / 99`);
   setText('metaQuality', `${result.data_quality.score} / 100`);
   setText('metaConfidence', `${confidencePercent}%`);
   setText('metaLatency', `${result.latency_ms} ms`);
   setText('riskScore', result.risk.score);
+  setText('gaugeTitle', lowConfidence ? '综合风险指数（规则引擎原始输出）' : '综合风险指数');
+  setText('gaugeNote', lowConfidence
+    ? '数值为规则引擎原始输出，仅用于演示分层逻辑；本次证据不足，低分不代表零风险，也不构成安全结论。'
+    : '该指数用于演示分层逻辑，并非校准后的临床概率。');
   setText('stageLabel', result.stage.label);
   setText('stageWindow', result.stage.window);
   setText('stageDetail', result.stage.detail);
-  setText('severityLabel', `${result.severity.label}风险 · ${result.severity.score}/100`);
-  setText('severityFlags', result.severity.flags.join('；'));
+  setText('severityLabel', lowConfidence ? '暂无法评估' : `${result.severity.label}风险 · ${result.severity.score}/100`);
+  setText('severityFlags', lowConfidence
+    ? '信息不足不代表风险低；缺少关键信息时，系统不对严重程度做分级判断。'
+    : result.severity.flags.join('；'));
+  setText('relativeNote', lowConfidence
+    ? '“相对占比”只是候选病原之间的相对排序指标，不代表感染概率，也不代表诊断概率；本次为拒答状态，未形成病原学结论。'
+    : '“相对占比”仅表示候选之间的相对排序，不代表真实感染概率。');
+  const confidenceNote = $('confidenceNote');
+  if (confidenceNote) {
+    if (lowConfidence) {
+      confidenceNote.hidden = false;
+      confidenceNote.textContent = '置信度是系统内部指标，不代表患病概率；证据不足时，它不构成可靠的风险判断依据。';
+    } else {
+      confidenceNote.hidden = true;
+      confidenceNote.textContent = '';
+    }
+  }
   setText('followUp', result.recommendations.follow_up);
   setText('confidenceText', `${confidencePercent}%`);
   setText('modelMeta', `${result.model.name} · ${result.model.version} · 请求编号 ${result.request_id}`);
 
   const rejectBanner = $('rejectBanner');
-  if (result.trust.low_confidence) {
+  if (lowConfidence) {
     rejectBanner.className = 'reject-banner';
-    rejectBanner.textContent = `安全拒答：${result.trust.reject_reason || '当前证据不足，系统不输出确定性判断。'} 已建议转人工复核。`;
+    rejectBanner.textContent = `安全拒答：${result.trust.reject_reason || '当前证据不足，系统不输出确定性判断。'} 已建议转人工复核。规则引擎原始输出：${result.risk.warning_label}（风险指数 ${result.risk.score}/99，置信度 ${confidencePercent}%）。`;
   }
 
   const gauge = $('riskGauge');
@@ -377,6 +404,19 @@ function recordLocalResult(result) {
   localMetrics.logs = localMetrics.logs.slice(0, 50);
 }
 
+/* 结果面板是否已在当前视口内可见到"能读出结论"的程度。
+   完全在视口之外、或可见高度不足 120px（也要求不超过面板高度的 20%）时，认为不可见。
+   阈值依据实测：1920x1080 可见约 319px、1440x900 可见约 139px → 视为已可见，不滚动；
+   1366x768 仅约 7px、1280x720 为 0px → 视为不可见，提交后滚动到结果。 */
+function isResultPanelVisible() {
+  if (!resultPanel) return false;
+  const rect = resultPanel.getBoundingClientRect();
+  const viewport = window.innerHeight || document.documentElement.clientHeight;
+  if (rect.bottom <= 0 || rect.top >= viewport) return false;
+  const visible = Math.min(rect.bottom, viewport) - Math.max(rect.top, 0);
+  return visible >= Math.min(120, rect.height * 0.2);
+}
+
 function submitScreening(event) {
   event.preventDefault();
   const original = submitButton.innerHTML;
@@ -387,7 +427,8 @@ function submitScreening(event) {
     recordLocalResult(result);
     renderResult(result);
     refreshObservability();
-    if (window.innerWidth < 1100) resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 结果已在视口内可见时不强制滚动；否则滚动到结果，确保提交后能看到结论（桌面端与移动端一致）
+    if (!isResultPanelVisible()) resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     showToast('评估完成：浏览器本地生成证据链与分层预警。');
   } catch (error) {
     localMetrics.errorCount += 1;
@@ -449,7 +490,16 @@ function renderLogs(items) {
     const level = safeLevel(item.warning_level);
     const levelClass = { blue: 'mini-blue', yellow: 'mini-yellow', orange: 'mini-orange', red: 'mini-red' }[level];
     const warningCell = document.createElement('td');
-    warningCell.appendChild(createElement('span', `mini-badge ${levelClass}`, item.warning_label));
+    if (item.low_confidence) {
+      // 审计日志：明确标注"已拒答/待人工复核"；原始预警值用中性灰徽标保留，避免被误认为当前最终状态
+      warningCell.appendChild(createElement('span', 'mini-badge mini-reject', '已拒答'));
+      warningCell.appendChild(document.createTextNode(' '));
+      warningCell.appendChild(createElement('span', 'mini-badge mini-review', '待人工复核'));
+      warningCell.appendChild(document.createTextNode(' '));
+      warningCell.appendChild(createElement('span', 'mini-badge mini-neutral', '规则引擎原始输出：' + item.warning_label));
+    } else {
+      warningCell.appendChild(createElement('span', `mini-badge ${levelClass}`, item.warning_label));
+    }
     const confidenceCell = document.createElement('td');
     confidenceCell.textContent = `${Math.round(item.confidence * 100)}% 置信度`;
     const reviewCell = document.createElement('td');
